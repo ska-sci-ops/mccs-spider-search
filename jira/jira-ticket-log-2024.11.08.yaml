@@ -1,0 +1,184 @@
+eb-t0001-20240926-00004:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Charlotte Sobey
+    reference: LCO-16
+    data_path: /home/jovyan/daq-data/eb-t0001-20240926-00004/ska-low-mccs/49
+eb-t0001-20240927-00002:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Charlotte Sobey
+    reference: LCO-14 
+    data_path: /home/jovyan/daq-data/eb-t0001-20240927-00002/ska-low-mccs/51
+eb-t0001-20241001-00005:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Charlotte Sobey
+    reference: LCO-18
+    data_path: /home/jovyan/daq-data/eb-t0001-20241001-00005/ska-low-mccs/9
+eb-t0001-20241004-00002:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Charlotte Sobey
+    reference: LCO-22
+    data_path: /home/jovyan/daq-data/eb-t0001-20241004-00002/ska-low-mccs/45
+eb-t0001-20241004-00002:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Charlotte Sobey
+    reference: LCO-26
+    data_path: /home/jovyan/daq-data/eb-t0001-20241015-00010/ska-low-mccs/20
+eb-t0001-20241017-00002:
+    station: S8-6
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Riley Keel
+    notes: Failed data capture, see successful eb-t0001-20241017-00004
+    reference: LCO-26
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00002/ska-low-mccs/6
+    qa: fail
+eb-t0001-20241017-00002:
+    station: S8-6
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Riley Keel
+    notes: Failed data capture, see successful eb-t0001-20241017-00004
+    reference: LCO-26
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00003/ska-low-mccs/7
+    qa: fail
+eb-t0001-20241017-00004:
+    station: S8-6
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Riley Keel
+    notes: Success after failure with eb-t0001-20241017-00002 and eb-t0001-20241017-00003
+    reference: LCO-26
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00004/ska-low-mccs/8
+eb-t0001-20241017-00001:
+    station: S8-1
+    intent: Frequency sweeps for delay determination LOW stations
+    observer: Riley Keel
+    reference: LCO-29
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00001/ska-low-mccs/5
+eb-t0001-20240927-00011:
+    station: S8-6
+    tracking: zenith
+    intent: 24 hour zenith drift scan of station beam
+    observer: Charlotte Sobey
+    reference: LCO-24
+    notes: Successful data collection, but repeat requested due to likely poor data quality. (Randall). See eb-t0001-20240928-00001
+    data_path: /home/jovyan/daq-data/eb-t0001-20240927-00011/ska-low-mccs/60
+    qa: fail
+eb-t0001-20240928-00001:
+    station: S8-6
+    tracking: zenith
+    intent: 24 hour zenith drift scan of station beam
+    observer: Charlotte Sobey
+    reference: LCO-24
+    notes: Repeat of eb-t0001-20240927-00011 due to poor data quality.
+    data_path: /home/jovyan/daq-data/eb-t0001-20240928-00001/ska-low-mccs/61
+eb-t0001-20240926-00003:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-13
+    data_path: /home/jovyan/daq-data/eb-t0001-20240926-00003/ska-low-mccs/48
+eb-t0001-20240927-00001:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-15
+    data_path: /home/jovyan/daq-data/eb-t0001-20240927-00001/ska-low-mccs/50
+eb-t0001-20241001-00004:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-17
+    data_path: /home/jovyan/daq-data/eb-t0001-20241001-00004/ska-low-mccs/8
+eb-t0001-20241002-00001:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-19
+    data_path: /home/jovyan/daq-data/eb-t0001-20241002-00001/ska-low-mccs/33
+eb-t0001-20241003-00003:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-20
+    data_path: /home/jovyan/daq-data/eb-t0001-20241003-00003/ska-low-mccs/39
+eb-t0001-20241004-00001:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-21
+    data_path: /home/jovyan/daq-data/eb-t0001-20241004-00001/ska-low-mccs/44
+eb-t0001-20241009-00023:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    notes: "Cal solution in shared/Randall/FreqSweep/2024-10-09T05:58:30/s8-6"
+    reference: LCO-23
+    data_path: /home/jovyan/daq-data/eb-t0001-20241009-00023/ska-low-mccs/53
+eb-t0001-20241015-00008:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-25
+    data_path: /home/jovyan/daq-data/eb-t0001-20241015-00008/ska-low-mccs/18
+eb-t0001-20241016-00004:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    notes: "MCCS may have had issues today: see thread. https://skao.slack.com/archives/C073G02LGHF/p1729044566399919?thread_ts=1728959641.003749&cid=C073G02LGHF"
+    reference: LCO-27
+    data_path: /home/jovyan/daq-data/eb-t0001-20241016-00004/ska-low-mccs/4
+    qa: fail
+eb-t0001-20241101-00008:
+    station: S9-2
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-38
+    data_path: /home/jovyan/daq-data/eb-t0001-20241101-00008/ska-low-mccs/74
+eb-t0001-20241101-00007:
+    station: S8-6
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-37
+    data_path: /home/jovyan/daq-data/eb-t0001-20241101-00007/ska-low-mccs/73
+eb-t0001-20241101-00005:
+    station: S8-1
+    observer: Charlotte Sobey
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-36
+    data_path: /home/jovyan/daq-data/eb-t0001-20241101-00005/ska-low-mccs/71
+eb-t0001-20241021-00006:
+    station: S8-6
+    observer: Riley Keel
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-31
+    data_path: /home/jovyan/daq-data/eb-t0001-20241021-00006/ska-low-mccs/6
+eb-t0001-20241021-00005:
+    station: S9-2
+    observer: Riley Keel
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-30
+    data_path: /home/jovyan/daq-data/eb-t0001-20241021-00005/ska-low-mccs/5
+eb-t0001-20241017-00001:
+    station: S8-1
+    observer: Riley Keel
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-29
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00001/ska-low-mccs/5
+eb-t0001-20241017-00002:
+    station: S8-6
+    observer: Riley Keel
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-28
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00002/ska-low-mccs/6
+    qa: fail
+    notes: Ran into bug
+eb-t0001-20241017-00004:
+    station: S8-6
+    observer: Riley Keel
+    intent: Frequency sweeps for delay determination LOW stations
+    reference: LCO-28
+    data_path: /home/jovyan/daq-data/eb-t0001-20241017-00004/ska-low-mccs/8
+    notes: Repeat of eb-t0001-20241017-00002 
