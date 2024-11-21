@@ -1,10 +1,12 @@
+""" app.py - Simple MCCS single station data search. """
+
 import pandas as pd
 import panel as pn
 from bokeh.models import HTMLTemplateFormatter
 pn.extension('tabulator')
 
 # Read data from file
-df = pd.read_csv('db/2024-11-08-log.csv')
+df = pd.read_csv('db/2024-11-21-log.csv')
 
 # Convert floats into s string (helps searching)
 df['lst_start']    = df['lst_start'].round(1).astype('str')
@@ -27,7 +29,7 @@ df = df.rename(columns=col_names)
 # Select out primary columns to show in UI
 colsel = ['obs_id', 'station', 'mode', 'sub_mode', 'utc_start', 'lst_start', 'observer', 'qa']
 colsel = [col_names[c] for c in colsel]
-df_view = df[colsel].fillna('-')
+df_view = df[colsel].fillna('-').sort_values('UTC Start', ascending=False)
 
 def show_entry(tab_idx: int=0) -> pd.DataFrame:
     """ Show all information about selected entry.
