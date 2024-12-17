@@ -125,7 +125,7 @@ def get_md_corr(filelist: list, obs_md: ObservationMetadata) -> ObservationMetad
         # Get last timestamp: in fixed mode, this will be last file in sequence
         else:
             if n_step > 1:
-                last_file = f"{modestr1}_{modestr2}_{chans[-1]}_{dt0}_{dt1}_{tsteps[0]}.hdf5"
+                last_file = f"{modestr1}_{modestr2}_{chans[0]}_{dt0}_{dt1}_{tsteps[-1]}.hdf5"
                 
                 with h5py.File(os.path.join(dirname, last_file), mode='r') as h:
                     t1 = Time(h['sample_timestamps']['data'][-1, -1] + obs_md.time_resolution, format='unix')
@@ -225,7 +225,7 @@ def run_spider(datapath: str, outdir: str='db'):
                         obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
                         
                         if fh['root'].attrs['station_id'] != 0:
-                            obs_md.station = corr_md['station_id']
+                            obs_md.station = fh['root'].attrs['station_id']
                         else:
                             # Station ID is sometimes stored in description field
                             # e.g. "s10-3, sun SFT" or "s9-2"
