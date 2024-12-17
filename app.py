@@ -6,7 +6,7 @@ from bokeh.models import HTMLTemplateFormatter
 pn.extension('tabulator')
 
 # Read data from file
-df = pd.read_csv('db/2024-11-21-log.csv')
+df = pd.read_csv('db/2024-12-17.csv')
 
 # Convert floats into s string (helps searching)
 df['lst_start']    = df['lst_start'].round(1).astype('str')
@@ -23,11 +23,12 @@ col_names = {
     'qa': 'QA',
     'bandwidth': 'Bandwidth (MHz)',
     'observer': 'Observer',
-}
+    'reference': 'reference'
+    }
 df = df.rename(columns=col_names)
 
 # Select out primary columns to show in UI
-colsel = ['obs_id', 'station', 'mode', 'sub_mode', 'utc_start', 'lst_start', 'observer', 'qa']
+colsel = ['obs_id', 'station', 'mode', 'sub_mode', 'utc_start', 'lst_start', 'reference', 'observer', 'qa']
 colsel = [col_names[c] for c in colsel]
 df_view = df[colsel].fillna('-').sort_values('UTC Start', ascending=False)
 
@@ -68,7 +69,9 @@ tab_config = {
     'show_index': False,
     'selectable': True,
     'disabled': True,
-    'header_filters': True
+    'header_filters': True,
+    'initial_page_size': 12,
+    'page_size': 12
 }
 
 table = pn.widgets.Tabulator(df_view, **tab_config)
@@ -82,4 +85,4 @@ tpl = pn.template.FastListTemplate(
 )
 
 _ = tpl.servable()
-pn.serve(tpl)
+pn.serve(tpl, address='10.151.6.200', port=8765)
