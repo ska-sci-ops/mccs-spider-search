@@ -226,12 +226,11 @@ def run_spider(datapath: str, outdir: str='db'):
                             obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
                             
                             if fh['root'].attrs['station_id'] != 0:
-                                station_id = fh['root'].attrs['station_id']
+                                station_id = str(fh['root'].attrs['station_id'])
     
                                 # As of Jan 2025 some stations have integer IDs. This fixes 'em
-                                if isinstance(station_id, int):
-                                    sid_map = {345: 's8-1', 350: 's8-6', 352: 's9-2', 359: 's10-3'}
-                                    station_id = sid_map.get(station_id, station_id)
+                                sid_map = {'345': 's8-1', '350': 's8-6', '352': 's9-2', '431': 's10-3'}
+                                station_id = sid_map.get(station_id, station_id)
                                 obs_md.station = station_id
                             else:
                                 # Station ID is sometimes stored in description field
