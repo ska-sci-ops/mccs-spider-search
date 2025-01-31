@@ -20,7 +20,7 @@ def show_entry(tab_idx: int=0) -> pd.DataFrame:
     Returns full dataframe for given index (pd.DataFrame)
     """
     df_tab = table.selected_dataframe
-    obs_col = col_names['obs_id']
+    obs_col = 'Observation ID'
     if len(df_tab) >= 1:
         df_sel = df[df[obs_col] == df_tab.iloc[0][obs_col]]
     else:
@@ -59,7 +59,4 @@ if __name__ == "__main__":
     )
     
     _ = tpl.servable()
-    pn.serve(tpl)
-
-_ = tpl.servable()
-pn.serve(tpl, address='10.151.6.200', port=8765)
+    pn.serve(tpl, address='10.151.6.200', port=8765) # run with python app.py --alow-websocket-origin=10.151.6.200:8765
