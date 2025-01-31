@@ -45,7 +45,9 @@ if __name__ == "__main__":
         'show_index': False,
         'selectable': True,
         'disabled': True,
-        'header_filters': True
+        'header_filters': True,
+        'initial_page_size': 12,
+        'page_size': 12
     }
     
     table = pn.widgets.Tabulator(df_view, **tab_config)
@@ -58,3 +60,6 @@ if __name__ == "__main__":
     
     _ = tpl.servable()
     pn.serve(tpl)
+
+_ = tpl.servable()
+pn.serve(tpl, address='10.151.6.200', port=8765)
