@@ -83,7 +83,7 @@ def get_md_corr(filelist: list, obs_md: ObservationMetadata) -> ObservationMetad
         chan_ids.append(chan_id)
         tsteps.append(tstep)
         if modestr1 != _modestr1:
-            print(f"WARNING: {obs_md.obs_id} - Mixed HDF5 file types in {dirname}")
+            logger.warning(f"{obs_md.obs_id} - Mixed HDF5 file types in {dirname}")
 
     # Get unique channels and sequence IDs (timesteps)
     chans = sorted([int(c) for c in set(chan_ids)])
@@ -218,22 +218,32 @@ def run_spider(datapath: str, outdir: str='db'):
                     
                     # Get metadata from HDF5 files
                     with h5py.File(h5list[0], 'r') as fh:
-                        t = Time(fh['root'].attrs['ts_start'], format='unix', location=eloc)
-                        obs_md.utc_start = t.iso
-                        #dstr = t.strftime("%Y-%m-%d")
-                        #ut = t.unix
-                        obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
-                        
-                        if fh['root'].attrs['station_id'] != 0:
-                            obs_md.station = fh['root'].attrs['station_id']
-                        else:
-                            # Station ID is sometimes stored in description field
-                            # e.g. "s10-3, sun SFT" or "s9-2"
-                            description = fh['observation_info'].attrs['description'].split(', ')
-                            if description[0].lower().startswith('s'):
-                                obs_md.station = description[0].upper()
-                            if len(description) > 1:
-                                obs_md.intent = description[1]
+                        try:
+                            t = Time(fh['root'].attrs['ts_start'], format='unix', location=eloc)
+                            obs_md.utc_start = t.iso
+                            #dstr = t.strftime("%Y-%m-%d")
+                            #ut = t.unix
+                            obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
+                            
+                            if fh['root'].attrs['station_id'] != 0:
+                                station_id = fh['root'].attrs['station_id']
+    
+                                # As of Jan 2025 some stations have integer IDs. This fixes 'em
+                                if isinstance(station_id, int):
+                                    sid_map = {345: 's8-1', 350: 's8-6', 352: 's9-2', 359: 's10-3'}
+                                    station_id = sid_map.get(station_id, station_id)
+                                obs_md.station = station_id
+                            else:
+                                # Station ID is sometimes stored in description field
+                                # e.g. "s10-3, sun SFT" or "s9-2 CAL TEST"
+                                description = fh['observation_info'].attrs['description'].split(', ')
+                                description = description[0].split(' ')
+                                if description[0].lower().startswith('s'):
+                                    obs_md.station = description[0].upper()
+                                if len(description) > 1:
+                                    obs_md.intent = description[1]
+                        except KeyError:
+                            logger.warning(f"Cannot read required keys from {obs_id} {h5list[0]}")
     
                     # Get metadata from YAML
                     yaml_path = f"{obspath}/obs_metadata.yaml"
@@ -270,12 +280,34 @@ def run_spider(datapath: str, outdir: str='db'):
                         obs_table.append(obs_md)
                     except OSError:
                         logger.warning(f"OSError when opening: {obs_id} {h5list[0]}")
-                        
-    filename = datetime.now().strftime(f"{outdir}/%Y-%m-%d.csv")
-    df = pd.DataFrame(obs_table)
+
     
+    df = pd.DataFrame(obs_table)
+
+    # Convert floats into string (helps searching)
+    df['lst_start']    = df['lst_start'].round(1).astype('str')
+    df['obs_duration'] = df['obs_duration'].round(3).astype('str')
+
+    # Display-friendly names
+    col_names = {
+        'lst_start': 'LST start (hr)',
+        'obs_duration': 'Duration (s)',
+        'obs_id': 'Observation ID',
+        'mode': 'Mode',
+        'station': 'Station ID',
+        'sub_mode': 'Sub-mode',
+        'utc_start': 'UTC Start',
+        'qa': 'QA',
+        'bandwidth': 'Bandwidth (MHz)',
+        'observer': 'Observer',
+    }
+    df = df.rename(columns=col_names)
+
+    filename = datetime.now().strftime(f"{outdir}/%Y-%m-%d.csv")
     logger.info(f"Saving to {filename}")
     df.to_csv(filename, index=False)
+    # Save to latest.csv also
+    df.to_csv(f"{outdir}/latest.csv", index=False)
 
 if __name__ == "__main__":
     dpath = "/home/jovyan/daq-data"

@@ -1,46 +1,23 @@
-""" app.py - Simple MCCS single station data search. """
-
+""" app.py - Simple MCCS single station data search."""
 import pandas as pd
 import panel as pn
 from bokeh.models import HTMLTemplateFormatter
 pn.extension('tabulator')
 
 # Read data from file
-df = pd.read_csv('db/2024-11-21-log.csv')
-
-# Convert floats into s string (helps searching)
-df['lst_start']    = df['lst_start'].round(1).astype('str')
-df['obs_duration'] = df['obs_duration'].round(3).astype('str')
-
-col_names = {
-    'lst_start': 'LST start (hr)',
-    'obs_duration': 'Duration (s)',
-    'obs_id': 'Observation ID',
-    'mode': 'Mode',
-    'station': 'Station ID',
-    'sub_mode': 'Sub-mode',
-    'utc_start': 'UTC Start',
-    'qa': 'QA',
-    'bandwidth': 'Bandwidth (MHz)',
-    'observer': 'Observer',
-}
-df = df.rename(columns=col_names)
+df = pd.read_csv('db/latest.csv')
 
 # Select out primary columns to show in UI
-colsel = ['obs_id', 'station', 'mode', 'sub_mode', 'utc_start', 'lst_start', 'observer', 'qa']
-colsel = [col_names[c] for c in colsel]
+colsel = ['Observation ID', 'Station ID', 'Mode', 'Sub-mode', 'UTC Start', 'LST start (hr)', 'Observer', 'QA']
 df_view = df[colsel].fillna('-').sort_values('UTC Start', ascending=False)
 
 def show_entry(tab_idx: int=0) -> pd.DataFrame:
-    """ Show all information about selected entry.
-
-    Used as a callback via pn.bind()
+    """ Callback via pn.bind() to show all information about selected entry.
 
     Args:
         tab_idx (int): Table index (table.param.selection)
 
-    Returns:
-        Full dataframe for given index.
+    Returns full dataframe for given index (pd.DataFrame)
     """
     df_tab = table.selected_dataframe
     obs_col = col_names['obs_id']
@@ -59,27 +36,25 @@ def show_entry(tab_idx: int=0) -> pd.DataFrame:
     fmts = {
         "reference": HTMLTemplateFormatter(template="<code><%= value %></code>")
     }
-
     tab_sel = pn.widgets.Tabulator(df_sel.dropna(axis=1), disabled=True, formatters=fmts)
     return tab_sel
 
-tab_config = {
-    'theme': 'semantic-ui',
-    'show_index': False,
-    'selectable': True,
-    'disabled': True,
-    'header_filters': True
-}
-
-table = pn.widgets.Tabulator(df_view, **tab_config)
-
-plot = pn.bind(show_entry, tab_idx=table.param.selection)
-
-# #070068 - blueshift navy
-# #E70068 - Redshift magenta
-tpl = pn.template.FastListTemplate(
-     title="MCCS Observations", main=[table, plot], header_background='#FFFFFF', header_color='#070068', logo='assets/logo.png'
-)
-
-_ = tpl.servable()
-pn.serve(tpl)
+if __name__ == "__main__":
+    tab_config = {
+        'theme': 'semantic-ui',
+        'show_index': False,
+        'selectable': True,
+        'disabled': True,
+        'header_filters': True
+    }
+    
+    table = pn.widgets.Tabulator(df_view, **tab_config)
+    plot = pn.bind(show_entry, tab_idx=table.param.selection)
+    
+    # SKAO colors: #070068 - blueshift navy, #E70068 - Redshift magenta
+    tpl = pn.template.FastListTemplate(
+         title="MCCS Observations", main=[table, plot], header_background='#FFFFFF', header_color='#070068', logo='assets/logo.png'
+    )
+    
+    _ = tpl.servable()
+    pn.serve(tpl)
