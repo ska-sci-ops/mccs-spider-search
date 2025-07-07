@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import glob
 import pandas as pd
 import tqdm
@@ -62,6 +63,7 @@ obs_types = {
     'stationbeam_integ': ['beamformer', 'power'],
     'channel_burst': ['channel-voltages', 'sweep'],
     'channel_integ': ['antenna-bandpass', ' '],
+    'channel_cont': ['channel-voltages', 'fixed'],
     'correlation_burst': ['correlator', 'sweep'], # NOTE: Could be fixed submode too
     'raw_burst': ['adc-samples', 'synchronous'],  # NOTE: Could be asynchronous submode too
 }
@@ -229,7 +231,11 @@ def run_spider(datapath: str, outdir: str='db'):
                                 station_id = str(fh['root'].attrs['station_id'])
     
                                 # As of Jan 2025 some stations have integer IDs. This fixes 'em
-                                sid_map = {'345': 's8-1', '350': 's8-6', '352': 's9-2', '431': 's10-3'}
+                                sid_map = {'345': 'S8-1', 
+                                           '350': 'S8-6', 
+                                           '351': 'S9-1', 
+                                           '352': 'S9-2', 
+                                           '431': 'S10-3'}
                                 station_id = sid_map.get(station_id, station_id)
                                 obs_md.station = station_id
                             else:
@@ -241,9 +247,34 @@ def run_spider(datapath: str, outdir: str='db'):
                                     obs_md.station = description[0].upper()
                                 if len(description) > 1:
                                     obs_md.intent = description[1]
+                            
                         except KeyError:
                             logger.warning(f"Cannot read required keys from {obs_id} {h5list[0]}")
-    
+
+                        try:
+                            # Sometimes the source RA/DEC or name is in the description field.
+                            description = fh['observation_info'].attrs['description']
+                            paren_match = re.search(r"\(([^)]+)\)", description)
+                            if paren_match:
+                                paren_value = paren_match.group(1)
+                                if paren_value == "NAMED":
+                                    target_match = re.search(r"pointing at ([A-Z0-9_-]+) \(NAMED\)", description)
+                                    target = target_match.group(1) if target_match else None
+                                    obs_md.source_name = target
+                                else:
+                                    radec_match = re.search(r"\[([^\]]+)\]", description)
+                                    radec = radec_match.group(1) if radec_match else None
+                                    ra, dec = [float(x.strip()) for x in radec.split(",")]
+                                    if paren_value == "ALT_AZ":
+                                        obs_md.altitude = radec[0]
+                                        obs_md.azimuth = radec[1]
+                                    else:
+                                        obs_md.right_ascension = radec[0]
+                                        obs_md.declination = radec[1]
+                                    obs_md.source_name = f"{paren_value} [{ra:.3f}, {dec:.3f}]"
+                        except KeyError:
+                            logger.warning(f"Cannot read required key 'description' from {obs_id} {h5list[0]}")
+
                     # Get metadata from YAML
                     yaml_path = f"{obspath}/obs_metadata.yaml"
                     if os.path.exists(yaml_path):
@@ -279,13 +310,14 @@ def run_spider(datapath: str, outdir: str='db'):
                         obs_table.append(obs_md)
                     except OSError:
                         logger.warning(f"OSError when opening: {obs_id} {h5list[0]}")
-
+                    except KeyError:
+                        logger.warning(f"Cannot read required keys from {obs_id} {h5list[0]}")
     
     df = pd.DataFrame(obs_table)
 
     # Convert floats into string (helps searching)
-    df['lst_start']    = df['lst_start'].round(1).astype('str')
-    df['obs_duration'] = df['obs_duration'].round(3).astype('str')
+    df['lst_start']    = pd.to_numeric(df['lst_start'], errors='coerce').round(1).astype('str')
+    df['obs_duration'] = pd.to_numeric(df['obs_duration'], errors='coerce').round(3).astype('str')
 
     # Display-friendly names
     col_names = {
@@ -310,5 +342,9 @@ def run_spider(datapath: str, outdir: str='db'):
 
 if __name__ == "__main__":
     dpath = "/home/jovyan/daq-data"
+    now_str = datetime.now().strftime(f"%Y-%m-%d") 
+    logger.add(f"db/loguru_{now_str}.log", format="<level>{level}</level> | {message}", level="INFO")
     run_spider(dpath, outdir='db')
-    
+
+    print("Updating database on acacia")
+    os.system("/home/jovyan/shared/Danny/rclone/rclone copy db/ SKAO:/aa05/mccs-spider-search/db")
