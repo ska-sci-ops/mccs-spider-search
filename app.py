@@ -68,7 +68,8 @@ tab_config = {
     'show_index': False,
     'selectable': True,
     'disabled': True,
-    'header_filters': True
+    'header_filters': True,
+    'page_size': 12
 }
 
 table = pn.widgets.Tabulator(df_view, **tab_config)
