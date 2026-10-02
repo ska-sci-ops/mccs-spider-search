@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import glob
 import pandas as pd
 import tqdm
@@ -62,6 +63,7 @@ obs_types = {
     'stationbeam_integ': ['beamformer', 'power'],
     'channel_burst': ['channel-voltages', 'sweep'],
     'channel_integ': ['antenna-bandpass', ' '],
+    'channel_cont': ['channel-voltages', 'fixed'],
     'correlation_burst': ['correlator', 'sweep'], # NOTE: Could be fixed submode too
     'raw_burst': ['adc-samples', 'synchronous'],  # NOTE: Could be asynchronous submode too
 }
@@ -83,7 +85,7 @@ def get_md_corr(filelist: list, obs_md: ObservationMetadata) -> ObservationMetad
         chan_ids.append(chan_id)
         tsteps.append(tstep)
         if modestr1 != _modestr1:
-            print(f"WARNING: {obs_md.obs_id} - Mixed HDF5 file types in {dirname}")
+            logger.warning(f"{obs_md.obs_id} - Mixed HDF5 file types in {dirname}")
 
     # Get unique channels and sequence IDs (timesteps)
     chans = sorted([int(c) for c in set(chan_ids)])
@@ -125,7 +127,7 @@ def get_md_corr(filelist: list, obs_md: ObservationMetadata) -> ObservationMetad
         # Get last timestamp: in fixed mode, this will be last file in sequence
         else:
             if n_step > 1:
-                last_file = f"{modestr1}_{modestr2}_{chans[-1]}_{dt0}_{dt1}_{tsteps[0]}.hdf5"
+                last_file = f"{modestr1}_{modestr2}_{chans[0]}_{dt0}_{dt1}_{tsteps[-1]}.hdf5"
                 
                 with h5py.File(os.path.join(dirname, last_file), mode='r') as h:
                     t1 = Time(h['sample_timestamps']['data'][-1, -1] + obs_md.time_resolution, format='unix')
@@ -218,23 +220,61 @@ def run_spider(datapath: str, outdir: str='db'):
                     
                     # Get metadata from HDF5 files
                     with h5py.File(h5list[0], 'r') as fh:
-                        t = Time(fh['root'].attrs['ts_start'], format='unix', location=eloc)
-                        obs_md.utc_start = t.iso
-                        #dstr = t.strftime("%Y-%m-%d")
-                        #ut = t.unix
-                        obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
-                        
-                        if fh['root'].attrs['station_id'] != 0:
-                            obs_md.station = corr_md['station_id']
-                        else:
-                            # Station ID is sometimes stored in description field
-                            # e.g. "s10-3, sun SFT" or "s9-2"
-                            description = fh['observation_info'].attrs['description'].split(', ')
-                            if description[0].lower().startswith('s'):
-                                obs_md.station = description[0].upper()
-                            if len(description) > 1:
-                                obs_md.intent = description[1]
+                        try:
+                            t = Time(fh['root'].attrs['ts_start'], format='unix', location=eloc)
+                            obs_md.utc_start = t.iso
+                            #dstr = t.strftime("%Y-%m-%d")
+                            #ut = t.unix
+                            obs_md.lst_start = np.round(t.sidereal_time('apparent').value, 3)
+                            
+                            if fh['root'].attrs['station_id'] != 0:
+                                station_id = str(fh['root'].attrs['station_id'])
     
+                                # As of Jan 2025 some stations have integer IDs. This fixes 'em
+                                sid_map = {'345': 'S8-1', 
+                                           '350': 'S8-6', 
+                                           '351': 'S9-1', 
+                                           '352': 'S9-2', 
+                                           '431': 'S10-3'}
+                                station_id = sid_map.get(station_id, station_id)
+                                obs_md.station = station_id
+                            else:
+                                # Station ID is sometimes stored in description field
+                                # e.g. "s10-3, sun SFT" or "s9-2 CAL TEST"
+                                description = fh['observation_info'].attrs['description'].split(', ')
+                                description = description[0].split(' ')
+                                if description[0].lower().startswith('s'):
+                                    obs_md.station = description[0].upper()
+                                if len(description) > 1:
+                                    obs_md.intent = description[1]
+                            
+                        except KeyError:
+                            logger.warning(f"Cannot read required keys from {obs_id} {h5list[0]}")
+
+                        try:
+                            # Sometimes the source RA/DEC or name is in the description field.
+                            description = fh['observation_info'].attrs['description']
+                            paren_match = re.search(r"\(([^)]+)\)", description)
+                            if paren_match:
+                                paren_value = paren_match.group(1)
+                                if paren_value == "NAMED":
+                                    target_match = re.search(r"pointing at ([A-Z0-9_-]+) \(NAMED\)", description)
+                                    target = target_match.group(1) if target_match else None
+                                    obs_md.source_name = target
+                                else:
+                                    radec_match = re.search(r"\[([^\]]+)\]", description)
+                                    radec = radec_match.group(1) if radec_match else None
+                                    ra, dec = [float(x.strip()) for x in radec.split(",")]
+                                    if paren_value == "ALT_AZ":
+                                        obs_md.altitude = radec[0]
+                                        obs_md.azimuth = radec[1]
+                                    else:
+                                        obs_md.right_ascension = radec[0]
+                                        obs_md.declination = radec[1]
+                                    obs_md.source_name = f"{paren_value} [{ra:.3f}, {dec:.3f}]"
+                        except KeyError:
+                            logger.warning(f"Cannot read required key 'description' from {obs_id} {h5list[0]}")
+
                     # Get metadata from YAML
                     yaml_path = f"{obspath}/obs_metadata.yaml"
                     if os.path.exists(yaml_path):
@@ -270,14 +310,41 @@ def run_spider(datapath: str, outdir: str='db'):
                         obs_table.append(obs_md)
                     except OSError:
                         logger.warning(f"OSError when opening: {obs_id} {h5list[0]}")
-                        
-    filename = datetime.now().strftime(f"{outdir}/%Y-%m-%d.csv")
-    df = pd.DataFrame(obs_table)
+                    except KeyError:
+                        logger.warning(f"Cannot read required keys from {obs_id} {h5list[0]}")
     
+    df = pd.DataFrame(obs_table)
+
+    # Convert floats into string (helps searching)
+    df['lst_start']    = pd.to_numeric(df['lst_start'], errors='coerce').round(1).astype('str')
+    df['obs_duration'] = pd.to_numeric(df['obs_duration'], errors='coerce').round(3).astype('str')
+
+    # Display-friendly names
+    col_names = {
+        'lst_start': 'LST start (hr)',
+        'obs_duration': 'Duration (s)',
+        'obs_id': 'Observation ID',
+        'mode': 'Mode',
+        'station': 'Station ID',
+        'sub_mode': 'Sub-mode',
+        'utc_start': 'UTC Start',
+        'qa': 'QA',
+        'bandwidth': 'Bandwidth (MHz)',
+        'observer': 'Observer',
+    }
+    df = df.rename(columns=col_names)
+
+    filename = datetime.now().strftime(f"{outdir}/%Y-%m-%d.csv")
     logger.info(f"Saving to {filename}")
     df.to_csv(filename, index=False)
+    # Save to latest.csv also
+    df.to_csv(f"{outdir}/latest.csv", index=False)
 
 if __name__ == "__main__":
     dpath = "/home/jovyan/daq-data"
+    now_str = datetime.now().strftime(f"%Y-%m-%d") 
+    logger.add(f"db/loguru_{now_str}.log", format="<level>{level}</level> | {message}", level="INFO")
     run_spider(dpath, outdir='db')
-    
+
+    print("Updating database on acacia")
+    os.system("/home/jovyan/shared/Danny/rclone/rclone copy db/ SKAO:/aa05/mccs-spider-search/db")
