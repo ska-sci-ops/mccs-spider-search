@@ -1,15 +1,27 @@
 """ app.py - Simple MCCS single station data search."""
+import os
 import pandas as pd
 import panel as pn
 from bokeh.models import HTMLTemplateFormatter
 pn.extension('tabulator')
 
-# Read data from file
-df = pd.read_csv('db/latest.csv')
+def read_db():
+    # Read data from file
+    df = pd.read_csv('db/latest.csv')
 
-# Select out primary columns to show in UI
-colsel = ['Observation ID', 'Station ID', 'Mode', 'Sub-mode', 'UTC Start', 'LST start (hr)', 'Observer', 'QA']
-df_view = df[colsel].fillna('-').sort_values('UTC Start', ascending=False)
+    # Select out primary columns to show in UI
+    colsel = ['Observation ID', 'Station ID', 'Mode', 'Sub-mode', 'UTC Start', 'LST start (hr)', 'Observer', 'source_name', 'QA', 'n_files', 'size_mb']
+    df_view = df[colsel].fillna('-').sort_values('UTC Start', ascending=False)
+    return df, df_view
+
+df, df_view = read_db()
+
+#def update_db(event):
+#    print("Updating DB")
+#    os.system("rm ./db/latest.csv")
+#    os.system("rclone copy acacia:/aa05/mccs-spider-search/db/latest.csv ./db/")
+#    df, df_view = read_db()
+#    table.value = df_view
 
 def show_entry(tab_idx: int=0) -> pd.DataFrame:
     """ Callback via pn.bind() to show all information about selected entry.
@@ -53,10 +65,13 @@ if __name__ == "__main__":
     table = pn.widgets.Tabulator(df_view, **tab_config)
     plot = pn.bind(show_entry, tab_idx=table.param.selection)
     
+    #button = pn.widgets.Button(name='Refresh DB', button_type='primary', icon='refresh') 
+    #button.on_click(update_db)
+
     # SKAO colors: #070068 - blueshift navy, #E70068 - Redshift magenta
     tpl = pn.template.FastListTemplate(
          title="MCCS Observations", main=[table, plot], header_background='#FFFFFF', header_color='#070068', logo='assets/logo.png'
     )
     
     _ = tpl.servable()
-    pn.serve(tpl, address='10.151.6.200', port=8765) # run with python app.py --alow-websocket-origin=10.151.6.200:8765
+    pn.serve(tpl, address='10.151.6.200', port=5555) # run with python app.py --alow-websocket-origin=10.151.6.200:5555
