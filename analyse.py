@@ -71,6 +71,7 @@ def calibration_sets(df: pd.DataFrame):
     """
     sw = df[(df['Mode'] == 'correlator') & (df['Sub-mode'] == 'sweep')].copy()
     sw['Date (UTC)'] = pd.to_datetime(sw['UTC Start'], errors='coerce').dt.date
+    sw['UTC Time'] = pd.to_datetime(sw['UTC Start'], errors='coerce')
     sw['LST (hr)'] = pd.to_numeric(sw['LST start (hr)'], errors='coerce').round(1)
     sw['Station ID'] = sw['Station ID'].fillna('(blank)')
     err = sw['error'].fillna('') if 'error' in sw else ''
@@ -88,12 +89,15 @@ def calibration_sets(df: pd.DataFrame):
     g = sw.groupby('Set ID', sort=False)
     summary = pd.DataFrame({
         'Date (UTC)': g['Date (UTC)'].first(), 'LST (hr)': g['LST (hr)'].first(),
+        'UTC Time': g['UTC Time'].min(), 'Perth Local Time (AWST)': g['Perth Local Time (AWST)'].min(),
+        'Day/Night (AWST)': g['Day/Night (AWST)'].first(),
         'Observations': g.size(), 'Stations': g['Station ID'].apply(lambda s: ', '.join(sorted(set(s)))),
         'Failed': g['Failed'].sum(),
         'Failed stations': g['failed_station'].agg(lambda x: ', '.join(v for v in x if v)),
     }).reset_index()
     summary['Status'] = summary['Failed'].map(lambda n: 'FAILED' if n else 'OK')
     cols = ['Set ID', 'Date (UTC)', 'LST (hr)', 'Station ID', 'Observation ID', 'pb-id', 'UTC Start',
+            'Perth Local Time (AWST)', 'Day/Night (AWST)',
             'n_channel', 'n_files', 'Duration (s)', 'Status', 'error']
     detail = sw[[c for c in cols if c in sw.columns]]
     return summary, detail
@@ -101,7 +105,7 @@ def calibration_sets(df: pd.DataFrame):
 
 def write_calibration_report(df: pd.DataFrame, out: str):
     summary, detail = calibration_sets(df)
-    with pd.ExcelWriter(out, engine='xlsxwriter') as xw:
+    with pd.ExcelWriter(out, engine='xlsxwriter', datetime_format='yyyy-mm-dd hh:mm:ss') as xw:
         red = xw.book.add_format({'bg_color': '#F4B6B6'})
         for name, t in (('Calibration Sets', summary), ('Set Details', detail)):
             t.to_excel(xw, sheet_name=name, index=False)
