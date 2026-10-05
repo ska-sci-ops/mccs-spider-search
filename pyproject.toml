@@ -15,15 +15,16 @@ dependencies = [
     "pyyaml",
     "tqdm",
     "loguru",
+    "xlsxwriter",
 ]
 
 [project.optional-dependencies]
-analysis = ["xlsxwriter"]
 app = ["panel", "bokeh"]
 
 [project.scripts]
 mccs-spider = "spider.cli:main"
-mccs-analyse = "spider.analyse:cli"
+mccs-analyse = "analyse:cli"
 
 [tool.setuptools]
+py-modules = ["analyse"]
 packages = ["spider"]
