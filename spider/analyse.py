@@ -1,6 +1,6 @@
 """ analyse.py -- build the observation-log analysis workbook from db/latest.csv.
 
-Run after spider4.py:  python analyse.py [latest.csv] [out.xlsx]
+Run after the spider:  mccs-analyse [latest.csv] [out.xlsx]
 Needs: pandas, xlsxwriter.
 """
 
@@ -101,5 +101,9 @@ def main(csv='db/latest.csv', out='db/observation_log_analysis.xlsx'):
     print(f"Wrote {out}")
 
 
-if __name__ == "__main__":
+def cli():
     main(*sys.argv[1:3])
+
+
+if __name__ == "__main__":
+    cli()

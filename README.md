@@ -11,7 +11,7 @@ To do so:
 * login to the Juptyerhub at https://k8s.mccs.low.internal.skao.int/jupyterhub/
 * open a new terminal session
 * cd `/home/jovyan/shared/Danny/mccs-spider-search`
-* run `python spider.py`
+* run `mccs-spider` (after `uv pip install .`; add `--no-skip-existing` to re-spider everything)
 
 This will spider the files and create the database (a CSV file). This file is uploaded to 
 acacia via rclone:
