@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mccs-spider-search"
+version = "0.1.0"
+description = "Spider SKA-Low MCCS HDF5 observation metadata into a CSV database, with a Panel viewer"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas",
+    "numpy",
+    "astropy",
+    "h5py",
+    "pyyaml",
+    "tqdm",
+    "loguru",
+]
+
+[project.optional-dependencies]
+analysis = ["xlsxwriter"]
+app = ["panel", "bokeh"]
+
+[project.scripts]
+mccs-spider = "spider.cli:main"
+mccs-analyse = "spider.analyse:cli"
+
+[tool.setuptools]
+packages = ["spider"]

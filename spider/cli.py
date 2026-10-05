@@ -1,5 +1,6 @@
 """ spider.py -- create a CSV of single-station observation metadata. """
 
+import argparse
 import os
 import sys
 import re
@@ -17,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from loguru import logger
 
 # Map of all station IDs
-from spider.station_ids import sid_map
+from .station_ids import sid_map
 
 # Setup logger
 logger.remove(0)
@@ -455,11 +456,25 @@ def run_spider(datapath: str, outdir: str='db', skip_existing: bool=True, max_wo
     # Save to latest.csv also
     df.to_csv(f"{outdir}/latest.csv", index=False)
 
-if __name__ == "__main__":
-    dpath = "/home/jovyan/daq-data"
-    now_str = datetime.now().strftime("%Y-%m-%d")
-    logger.add(f"db/loguru_{now_str}.log", format="<level>{level}</level> | {message}", level="INFO")
-    run_spider(dpath, outdir='db')
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Create a CSV of single-station observation metadata.")
+    parser.add_argument("datapath", nargs="?", default="/home/jovyan/daq-data", help="directory containing eb-* folders")
+    parser.add_argument("-o", "--outdir", default="db", help="output directory (default: db)")
+    parser.add_argument("--no-skip-existing", dest="skip_existing", action="store_false",
+                        help="re-spider every folder instead of skipping those already in latest.csv")
+    parser.add_argument("-j", "--max-workers", type=int, default=8, help="concurrent folders (default: 8)")
+    parser.add_argument("--no-upload", dest="upload", action="store_false", help="skip the rclone upload")
+    args = parser.parse_args(argv)
 
-    print("Updating database on acacia")
-    os.system("/home/jovyan/shared/Danny/rclone/rclone copy db/ SKAO:/aa05/mccs-spider-search/db")
+    now_str = datetime.now().strftime("%Y-%m-%d")
+    os.makedirs(args.outdir, exist_ok=True)
+    logger.add(f"{args.outdir}/loguru_{now_str}.log", format="<level>{level}</level> | {message}", level="INFO")
+    run_spider(args.datapath, outdir=args.outdir, skip_existing=args.skip_existing, max_workers=args.max_workers)
+
+    if args.upload:
+        print("Updating database on acacia")
+        os.system(f"/home/jovyan/shared/Danny/rclone/rclone copy {args.outdir}/ SKAO:/aa05/mccs-spider-search/db")
+
+
+if __name__ == "__main__":
+    main()
