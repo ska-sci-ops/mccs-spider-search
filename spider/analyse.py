@@ -1,6 +1,6 @@
 """ analyse.py -- build the observation-log analysis workbook from db/latest.csv.
 
-Run after the spider:  mccs-analyse [latest.csv] [out.xlsx]
+Run after the spider:  mccs-analyse [latest.csv] [out.xlsx] [calibration.xlsx]
 Needs: pandas, xlsxwriter.
 """
 
@@ -62,11 +62,64 @@ def hour_hist(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return h.rename_axis(col.replace(' Bin', ''))
 
 
-def main(csv='db/latest.csv', out='db/observation_log_analysis.xlsx'):
+def calibration_sets(df: pd.DataFrame):
+    """ Group correlator sweeps taken on the same UTC day at the same LST (0.1 hr, as in the CSV).
+
+    A set is >= 2 observations, typically different stations sweeping simultaneously
+    (a calibration run). An observation is failed if QA == 'Failed' or spider recorded an error.
+    Returns (summary, detail) DataFrames.
+    """
+    sw = df[(df['Mode'] == 'correlator') & (df['Sub-mode'] == 'sweep')].copy()
+    sw['Date (UTC)'] = pd.to_datetime(sw['UTC Start'], errors='coerce').dt.date
+    sw['LST (hr)'] = pd.to_numeric(sw['LST start (hr)'], errors='coerce').round(1)
+    sw['Station ID'] = sw['Station ID'].fillna('(blank)')
+    err = sw['error'].fillna('') if 'error' in sw else ''
+    sw['Failed'] = (sw['QA'] == 'Failed') | (err != '')
+    sw = sw.dropna(subset=['Date (UTC)', 'LST (hr)'])
+
+    keys = ['Date (UTC)', 'LST (hr)']
+    sw['n_in_set'] = sw.groupby(keys)['Observation ID'].transform('size')
+    sw = sw[sw['n_in_set'] >= 2].sort_values(keys + ['Station ID'])
+    sw['Set ID'] = sw.groupby(keys, sort=False).ngroup() + 1
+    sw['Status'] = sw['Failed'].map({True: 'FAILED', False: 'OK'})
+
+    sw['failed_station'] = sw['Station ID'].where(sw['Failed'], '').replace('', pd.NA)
+    sw['failed_station'] = sw['failed_station'].fillna('')
+    g = sw.groupby('Set ID', sort=False)
+    summary = pd.DataFrame({
+        'Date (UTC)': g['Date (UTC)'].first(), 'LST (hr)': g['LST (hr)'].first(),
+        'Observations': g.size(), 'Stations': g['Station ID'].apply(lambda s: ', '.join(sorted(set(s)))),
+        'Failed': g['Failed'].sum(),
+        'Failed stations': g['failed_station'].agg(lambda x: ', '.join(v for v in x if v)),
+    }).reset_index()
+    summary['Status'] = summary['Failed'].map(lambda n: 'FAILED' if n else 'OK')
+    cols = ['Set ID', 'Date (UTC)', 'LST (hr)', 'Station ID', 'Observation ID', 'pb-id', 'UTC Start',
+            'n_channel', 'n_files', 'Duration (s)', 'Status', 'error']
+    detail = sw[[c for c in cols if c in sw.columns]]
+    return summary, detail
+
+
+def write_calibration_report(df: pd.DataFrame, out: str):
+    summary, detail = calibration_sets(df)
+    with pd.ExcelWriter(out, engine='xlsxwriter') as xw:
+        red = xw.book.add_format({'bg_color': '#F4B6B6'})
+        for name, t in (('Calibration Sets', summary), ('Set Details', detail)):
+            t.to_excel(xw, sheet_name=name, index=False)
+            ws = xw.sheets[name]
+            ws.autofilter(0, 0, len(t), len(t.columns) - 1)
+            ws.freeze_panes(1, 0)
+            col = t.columns.get_loc('Status')
+            ws.conditional_format(1, 0, len(t), len(t.columns) - 1,
+                                  {'type': 'formula', 'criteria': f'=${chr(65 + col)}2="FAILED"', 'format': red})
+    print(f"Wrote {out}: {len(summary)} sets, {int((summary['Status'] == 'FAILED').sum())} with failures")
+
+
+def main(csv='db/latest.csv', out='db/observation_log_analysis.xlsx', cal_out='db/calibration_sets.xlsx'):
     df = pd.read_csv(csv, keep_default_na=False, na_values=[''], dtype={'Mode': str, 'Sub-mode': str})
     df['Mode'] = df['Mode'].fillna('')
     df['Sub-mode'] = df['Sub-mode'].fillna('')   # antenna-bandpass sub-mode is ' ' -- preserved
     df = add_derived(df)
+    write_calibration_report(df, cal_out)
 
     vol, monthly = volume_summary(df), monthly_pivot(df)
     lst, utc = hour_hist(df, 'LST Hour Bin'), hour_hist(df, 'UTC Hour Bin')
@@ -102,7 +155,7 @@ def main(csv='db/latest.csv', out='db/observation_log_analysis.xlsx'):
 
 
 def cli():
-    main(*sys.argv[1:3])
+    main(*sys.argv[1:4])
 
 
 if __name__ == "__main__":
