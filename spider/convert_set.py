@@ -2,9 +2,11 @@
 
 import argparse
 import glob
+import json
 import os
 import sys
 import pandas as pd
+import yaml
 
 
 def get_eb(daq_dir, eb_id, n_expected):
@@ -56,6 +58,7 @@ def main():
     # per-set subdirectory: <out-dir>/set<id>_<UTC date, yyyy-mm-dd>
     out_dir = f"{a.out_dir}/set{a.set_id}_{pd.to_datetime(s['Date (UTC)'].iloc[0]):%Y-%m-%d}"
 
+    s_all = s
     if not a.include_failed:
         skipped = s[s['Status'] == 'FAILED']
         if len(skipped):
@@ -63,14 +66,21 @@ def main():
         s = s[s['Status'] != 'FAILED']
 
     os.makedirs(out_dir, exist_ok=True)
-    bad = []
+    bad, filelist = [], []
     for eb_id in s['Observation ID']:
         try:
             station_id, fn_out = convert(a.daq_dir, eb_id, out_dir, a.n_expected)
             print(f"OK   {eb_id} {station_id} -> {fn_out}")
+            filelist.append(dict(observation_id=eb_id, station_id=station_id, file=fn_out, status='ok'))
         except Exception as e:
             print(f"FAIL {eb_id}: {e}")
             bad.append(eb_id)
+            filelist.append(dict(observation_id=eb_id, status='failed', error=str(e)))
+    info = dict(set_id=a.set_id,
+                set_details=json.loads(s_all.to_json(orient='records', date_format='iso')),
+                filelist=filelist, args=vars(a), argv=sys.argv)
+    with open(f"{out_dir}/calibration_set.yaml", 'w') as f:
+        yaml.safe_dump(info, f, sort_keys=False)
     print(f"Set {a.set_id}: {len(s) - len(bad)} converted, {len(bad)} failed")
     sys.exit(bool(bad))
 
