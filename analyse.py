@@ -8,13 +8,16 @@ import sys
 import pandas as pd
 
 HOURS = range(24)
+# Valid sweep file counts: 64-448 (385, night); daytime starts at 128 to avoid the sun,
+# and ends at 425 since 425-448 is RFI-dominated: 128-448 (321), 128-425 (298), 64-425 (362).
+VALID_SWEEP_FILES = {385, 321, 298, 362}
 
 
 def add_derived(df: pd.DataFrame) -> pd.DataFrame:
     """ Derived columns, same logic as the formula columns in the hand-made workbook. """
     t = pd.to_datetime(df['UTC Start'], errors='coerce')
     sweep = (df['Mode'] == 'correlator') & (df['Sub-mode'] == 'sweep')
-    failed = sweep & (df['n_files'] != 385)
+    failed = sweep & ~df['n_files'].isin(VALID_SWEEP_FILES)
 
     df['QA'] = failed.map({True: 'Failed', False: ''})
     df['Month Bin'] = t.dt.to_period('M').dt.to_timestamp()
