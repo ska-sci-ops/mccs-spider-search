@@ -53,17 +53,20 @@ def main():
     if a.list:
         return
 
+    # per-set subdirectory: <out-dir>/set<id>_<UTC date, yyyy-mm-dd>
+    out_dir = f"{a.out_dir}/set{a.set_id}_{pd.to_datetime(s['Date (UTC)'].iloc[0]):%Y-%m-%d}"
+
     if not a.include_failed:
         skipped = s[s['Status'] == 'FAILED']
         if len(skipped):
             print(f"Skipping {len(skipped)} FAILED (use --include-failed): {', '.join(skipped['Observation ID'])}")
         s = s[s['Status'] != 'FAILED']
 
-    os.makedirs(a.out_dir, exist_ok=True)
+    os.makedirs(out_dir, exist_ok=True)
     bad = []
     for eb_id in s['Observation ID']:
         try:
-            station_id, fn_out = convert(a.daq_dir, eb_id, a.out_dir, a.n_expected)
+            station_id, fn_out = convert(a.daq_dir, eb_id, out_dir, a.n_expected)
             print(f"OK   {eb_id} {station_id} -> {fn_out}")
         except Exception as e:
             print(f"FAIL {eb_id}: {e}")
