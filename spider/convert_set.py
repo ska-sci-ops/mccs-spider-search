@@ -10,6 +10,9 @@ import pandas as pd
 def get_eb(daq_dir, eb_id, n_expected):
     """ Returns the path to the directory for a given eb_id. """
     dirpath = glob.glob(f"{daq_dir}/{eb_id}/ska-low-mccs/*")[0]
+    # some EBs keep the files in a correlator_data subdirectory
+    if os.path.isdir(f"{dirpath}/correlator_data"):
+        dirpath = f"{dirpath}/correlator_data"
     n_files = len(glob.glob(f"{dirpath}/correlation*.hdf5"))
     if n_files != n_expected:
         raise RuntimeError(f"Wrong number of files: {n_files} / {n_expected}")
