@@ -23,8 +23,8 @@ app = ["panel", "bokeh"]
 
 [project.scripts]
 mccs-spider = "spider.cli:main"
-mccs-analyse = "analyse:cli"
+mccs-analyse = "spider.analyse:cli"
+mccs-convert-set = "spider.convert_set:main"
 
 [tool.setuptools]
-py-modules = ["analyse"]
 packages = ["spider"]
