@@ -1,4 +1,4 @@
-""" analyse.py -- build the observation-log analysis workbook from db/latest.csv.
+""" spider/analyse.py -- build the observation-log analysis workbook from db/latest.csv.
 
 Run after the spider:  mccs-analyse [latest.csv] [out.xlsx] [calibration.xlsx]
 Needs: pandas, xlsxwriter.
